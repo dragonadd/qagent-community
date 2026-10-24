@@ -7,7 +7,8 @@
 > 没事，来妈妈这里，这里收容你
 
 ---
-<img width="1246" height="589" alt="图片" src="https://github.com/user-attachments/assets/745f3f66-b55a-42c3-9026-1e4e90bb8ddb" />
+<img width="1225" height="623" alt="图片" src="https://github.com/user-attachments/assets/dc71ecea-a1de-4776-9d85-db77d500213d" />
+
 
 
 ## 这是什么
