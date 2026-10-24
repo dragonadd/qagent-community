@@ -1,0 +1,102 @@
+# ------------------------------------------------------------------
+# 自动把「已通过」的 Issue 同步成 data.json
+# 触发时机：Issue 被创建 / 编辑 / 打标签 / 撤标签 / 关闭 / 删除
+#
+# 逻辑：
+#   1. 抓取所有「打开」且带「已通过」标签的 Issue
+#   2. 把标题、正文解析出来的分区 / 介绍 / 链接写进 data.json
+#   3. 内容有变化才提交推送（没变化就跳过，避免刷屏提交记录）
+# ------------------------------------------------------------------
+name: Sync Issues to JSON
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled, closed, reopened, deleted]
+
+# 给机器人足够的权限：往 main 分支推送
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Fetch Approved Issues and Build data.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // 翻页把所有「已通过」的未关闭 Issue 都抓回来
+            const issues = [];
+            let page = 1;
+            for (;;) {
+              const res = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: '已通过',
+                per_page: 100,
+                page: page,
+              });
+              issues.push(...res.data);
+              if (res.data.length < 100) break;   // 不足一页 = 没有了
+              page += 1;
+            }
+
+            const CATEGORY_MAP = { '人设': 'persona', '插件': 'plugin', '技能': 'skill' };
+
+            const data = issues.map((issue) => {
+              // 去掉标题开头的 [投稿] 前缀
+              let title = (issue.title || '').replace(/^\s*\[投稿\]\s*/i, '').trim();
+              const body = issue.body || '';
+
+              // ---- 解析分区（表单 dropdown）----
+              let categoryRaw = '';
+              const catMatch = body.match(/###\s*选择分区\s*\n+([^\n]+)/);
+              if (catMatch) categoryRaw = catMatch[1].trim();
+              // 兼容手写：正文里出现「人设 / 插件 / 技能」字样也算
+              if (!CATEGORY_MAP[categoryRaw]) {
+                for (const k of Object.keys(CATEGORY_MAP)) {
+                  if (body.includes(k)) { categoryRaw = k; break; }
+                }
+              }
+              const category = CATEGORY_MAP[categoryRaw] || 'persona';
+
+              // ---- 解析正文（表单 textarea：介绍 + 链接）----
+              let content = '';
+              const contentMatch = body.match(/###\s*文字介绍及下载链接\s*\n+([\s\S]*?)(?:\n###|\s*$)/);
+              if (contentMatch) content = contentMatch[1].trim();
+
+              // 链接：从介绍里找出第一个 http(s) 链接
+              let link = '';
+              const linkMatch = (content + '\n' + body).match(/https?:\/\/[^\s<>"'）)，。；、]+/);
+              if (linkMatch) link = linkMatch[0];
+
+              return {
+                id: issue.number,
+                title: title || '(无标题)',
+                category: category,
+                content: content || body.trim(),
+                link: link,
+                created_at: (issue.created_at || '').slice(0, 10),
+              };
+            });
+
+            fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
+
+      - name: Commit and Push
+        run: |
+          # 先检查 data.json 是否真的变了，没变就不提交（避免刷屏）
+          if git diff --quiet data.json; then
+            echo "data.json 没有变化，跳过提交。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "auto: 同步已通过投稿 -> data.json"
+          git push
