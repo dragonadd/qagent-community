@@ -12,6 +12,9 @@ name: Sync Issues to JSON
 on:
   issues:
     types: [opened, edited, labeled, unlabeled, closed, reopened, deleted]
+  # 允许在 Actions 页面手动点「Run workflow」重新同步一遍全部数据
+  # （改了脚本、或想立刻刷新时用得上）
+  workflow_dispatch:
 
 # 给机器人足够的权限：往 main 分支推送
 permissions:
@@ -50,13 +53,21 @@ jobs:
             const CATEGORY_MAP = { '人设': 'persona', '插件': 'plugin', '技能': 'skill' };
 
             const data = issues.map((issue) => {
-              // 去掉标题开头的 [投稿] 前缀
-              let title = (issue.title || '').replace(/^\s*\[投稿\]\s*/i, '').trim();
               const body = issue.body || '';
+
+              // ---- 解析标题 ----
+              // 注意：投稿表单里的「标题」输入框，GitHub 会把它放进 Issue 正文，
+              // 正文里显示成 "### 标题" 这一段；Issue 自己那个大标题只是模板预设的
+              // "[投稿] "。所以优先读正文里的标题，读不到再退回读大标题。
+              let title = '';
+              const titleMatch = body.match(/###\s*标题\s*\n+((?!#)[^\n]+)/);
+              if (titleMatch) title = titleMatch[1].trim();
+              if (!title) title = (issue.title || '').replace(/^\s*\[投稿\]\s*/i, '').trim();
+              if (!title) title = '(无标题)';
 
               // ---- 解析分区（表单 dropdown）----
               let categoryRaw = '';
-              const catMatch = body.match(/###\s*选择分区\s*\n+([^\n]+)/);
+              const catMatch = body.match(/###\s*选择分区\s*\n+((?!#)[^\n]+)/);
               if (catMatch) categoryRaw = catMatch[1].trim();
               // 兼容手写：正文里出现「人设 / 插件 / 技能」字样也算
               if (!CATEGORY_MAP[categoryRaw]) {
@@ -78,7 +89,7 @@ jobs:
 
               return {
                 id: issue.number,
-                title: title || '(无标题)',
+                title: title,
                 category: category,
                 content: content || body.trim(),
                 link: link,
