@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Q Agent 脑洞社区</title>
-<meta name="description" content="QQ Agent 用户分享人设 / 插件 / 技能的地方，投稿进 GitHub Issues，审核通过后展示。">
+<meta name="description" content="Q Agent 用户分享人设 / 插件 / 技能的地方，投稿进 GitHub Issues，审核通过后展示。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐧</text></svg>">
 <style>
   :root {
@@ -38,10 +38,10 @@
   .tab-btn:hover { border-color: var(--accent); }
   .tab-btn.is-active { background: var(--accent); color: #06121a; font-weight: 600; border-color: var(--accent); }
 
-  main { padding: 22px 0 60px; }
+  main { padding: 18px 0 48px; }
 
   /* 分区筛选 */
-  .cats { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
+  .cats { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
   .cat-btn {
     padding: 8px 20px; border-radius: 999px; border: 1px solid var(--line);
     background: var(--bg-card); color: var(--fg-soft); cursor: pointer; font-size: 14px;
@@ -50,19 +50,32 @@
   .cat-btn.is-active { background: var(--accent); color: #06121a; font-weight: 600; border-color: var(--accent); }
   .cat-btn .cnt { font-size: 12px; opacity: .8; }
 
-  /* 卡片 */
-  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-  @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+  /* 卡片：窄卡片 + 自动多列，投稿多了也不会拉得很长 */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 12px; }
   .card {
-    background: var(--bg-card); border: 1px solid var(--line); border-radius: 14px;
-    padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+    background: var(--bg-card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+    transition: border-color .15s;
   }
-  .card h3 { margin: 0; font-size: 18px; }
-  .card .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--fg-soft); }
-  .card .tag { padding: 2px 8px; border-radius: 6px; background: #20303d; color: var(--accent); font-weight: 600; }
-  .card .content { margin: 4px 0 6px; font-size: 14px; color: #cfd4dc; white-space: pre-wrap; word-break: break-word; }
-  .card .linkline { margin-top: auto; font-size: 13px; }
-  .card .linkline a::before { content: "⬇ "; }
+  .card:hover { border-color: var(--accent); }
+  .card h3 {
+    margin: 0; font-size: 15px; line-height: 1.35; font-weight: 600;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  }
+  .card .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11px; color: var(--fg-soft); }
+  .card .tag { padding: 1px 7px; border-radius: 5px; background: #20303d; color: var(--accent); font-weight: 600; }
+  /* 正文最多显示 4 行，超出才出现「展开全文」 */
+  .card .content {
+    margin: 0; font-size: 13px; line-height: 1.6; color: #cfd4dc;
+    white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden;
+  }
+  .card .content.is-open { display: block; overflow: visible; }
+  .card .more {
+    align-self: flex-start; margin: 0; padding: 0; border: 0; background: none;
+    color: var(--accent); font-size: 12px; line-height: 1.4; cursor: pointer;
+  }
+  .card .more:hover { text-decoration: underline; }
 
   /* 状态提示 */
   .state { text-align: center; padding: 48px 12px; color: var(--fg-soft); }
@@ -98,7 +111,7 @@
   <div class="brand">
     <span class="logo" aria-hidden="true">🐧</span>
     <div>
-      <h1>QQ Agent 脑洞社区</h1>
+      <h1>Q Agent 脑洞社区</h1>
       <p class="sub">人设 · 插件 · 技能，无聊测试的玩法都在这</p>
     </div>
   </div>
@@ -240,23 +253,29 @@ function renderGrid() {
     meta.appendChild(when);
     card.appendChild(meta);
 
+    let desc = null;
     if (it.content) {
-      const p = document.createElement('p');
-      p.className = 'content';
-      appendLinkified(p, it.content);
-      card.appendChild(p);
+      desc = document.createElement('p');
+      desc.className = 'content';
+      appendLinkified(desc, it.content);
+      card.appendChild(desc);
     }
 
-    if (it.link) {
-      const row = document.createElement('div');
-      row.className = 'linkline';
-      const a = document.createElement('a');
-      a.href = it.link; a.textContent = it.link; a.target = '_blank'; a.rel = 'noopener noreferrer';
-      row.appendChild(a);
-      card.appendChild(row);
-    }
-
+    // 投稿里的链接本来就在正文里，不再单独列一行，避免重复
     el.grid.appendChild(card);
+
+    // 正文真的被折叠了，才放「展开全文」（要进了 DOM 才量得出高度）
+    if (desc && desc.scrollHeight > desc.clientHeight + 2) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'more';
+      more.textContent = '展开全文';
+      more.addEventListener('click', () => {
+        const open = desc.classList.toggle('is-open');
+        more.textContent = open ? '收起' : '展开全文';
+      });
+      card.appendChild(more);
+    }
   }
 }
 
