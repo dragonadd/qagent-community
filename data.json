@@ -1,5 +1,13 @@
 [
   {
+    "id": 23,
+    "title": "各社区触发机器人指令",
+    "category": "persona",
+    "content": "#napcat\n#sl\nstatus\n#帮助\n/help",
+    "link": "",
+    "created_at": "2026-10-24"
+  },
+  {
     "id": 22,
     "title": "疾病系统",
     "category": "plugin",
