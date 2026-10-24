@@ -1,0 +1,39 @@
+name: "📝 提交新内容"
+description: "提交你的 QQ Agent 脑洞（人设 / 插件 / 技能），管理员审核通过后展示"
+title: "[投稿] "
+labels: ["待审核"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢投稿！提交后会被打上 **待审核** 标签，等管理员审核通过（改成 **已通过** 标签）后，
+        网页会自动显示出来。目前只能提交文字介绍 + 下载/查看链接。
+  - type: dropdown
+    id: category
+    attributes:
+      label: "选择分区"
+      description: "你要投稿的是哪一类？"
+      options:
+        - 人设
+        - 插件
+        - 技能
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: "标题"
+      description: "给你的脑洞起个名字"
+      placeholder: "例如：傲娇猫娘人设"
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: "文字介绍及下载链接"
+      description: "描述它有什么用、怎么用，末尾附上 http/https 下载或查看链接（可选）"
+      placeholder: |
+        介绍一下这个脑洞……
+        示例：https://example.com/xxx.zip
+    validations:
+      required: true
