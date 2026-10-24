@@ -1,24 +1,28 @@
 # ------------------------------------------------------------------
-# 自动把「已通过」的 Issue 同步成 data.json
+# 自动整理投稿 Issue + 把「已通过」的同步成 data.json
 # 触发时机：Issue 被创建 / 编辑 / 打标签 / 撤标签 / 关闭 / 删除
 #
 # 逻辑：
-#   1. 抓取所有「打开」且带「已通过」标签的 Issue
-#   2. 把标题、正文解析出来的分区 / 介绍 / 链接写进 data.json
-#   3. 内容有变化才提交推送（没变化就跳过，避免刷屏提交记录）
+#   1. 抓取所有「打开」的 Issue
+#   2. 【关键】标题看不出内容的投稿（模板预设的 "[投稿] "），
+#      自动改名成 "[投稿] 真实标题"，这样在 Issue 列表里一眼就能认出是哪份投稿
+#      —— 只补空标题，管理员自己改过的标题一律不碰
+#   3. 把带「已通过」标签的 Issue 写进 data.json
+#   4. data.json 有变化才提交推送（没变化就跳过，避免刷屏提交记录）
 # ------------------------------------------------------------------
 name: Sync Issues to JSON
 
 on:
   issues:
     types: [opened, edited, labeled, unlabeled, closed, reopened, deleted]
-  # 允许在 Actions 页面手动点「Run workflow」重新同步一遍全部数据
-  # （改了脚本、或想立刻刷新时用得上）
+  # 允许在 Actions 页面手动点「Run workflow」：
+  # 改过脚本、或想一次性把历史投稿的标题都补齐时用得上
   workflow_dispatch:
 
-# 给机器人足够的权限：往 main 分支推送
+# 给机器人足够的权限：往 main 分支推送 + 修改 Issue 标题
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -27,45 +31,88 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Fetch Approved Issues and Build data.json
+      - name: Tidy Issue Titles and Build data.json
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
 
-            // 翻页把所有「已通过」的未关闭 Issue 都抓回来
+            const OWNER = context.repo.owner;
+            const REPO = context.repo.repo;
+
+            // ---- 小工具 ----
+            // 去掉标题里的各种方括号前缀，用来判断「这个标题到底有没有内容」
+            const PREFIX_RE = /^\s*(\[投稿\]|\[待审核\]|\[已通过\]|\[审核中\])\s*/i;
+            const cleanTitle = (raw) => (raw || '').replace(PREFIX_RE, '').trim();
+
+            const labelName = (l) => (typeof l === 'string' ? l : (l && l.name) || '');
+            const hasLabel = (issue, name) => (issue.labels || []).some((l) => labelName(l) === name);
+
+            // 投稿表单里的「标题」输入框，GitHub 会把它放进正文，显示成 "### 标题" 这一段
+            const parseBodyTitle = (body) => {
+              const m = (body || '').match(/###\s*标题\s*\n+((?!#)[^\n]+)/);
+              return m ? m[1].trim() : '';
+            };
+
+            // 判断是不是一份投稿：有标签，或者正文长得像投稿表单
+            const isSubmission = (issue) =>
+              hasLabel(issue, '待审核') ||
+              hasLabel(issue, '已通过') ||
+              /###\s*选择分区|###\s*文字介绍及下载链接/.test(issue.body || '');
+
+            // ---- 1. 抓取所有「打开」的 Issue（自动翻页）----
             const issues = [];
             let page = 1;
             for (;;) {
               const res = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner: OWNER,
+                repo: REPO,
                 state: 'open',
-                labels: '已通过',
                 per_page: 100,
                 page: page,
               });
-              issues.push(...res.data);
+              // listForRepo 会把 Pull Request 也带出来，用 pull_request 字段排掉
+              issues.push(...res.data.filter((i) => !i.pull_request));
               if (res.data.length < 100) break;   // 不足一页 = 没有了
               page += 1;
             }
+            console.log(`读取到 ${issues.length} 条打开的 Issue`);
 
+            // ---- 2. 把「看不出是哪份投稿」的标题补成 [投稿] 真实标题 ----
+            // 只补空标题；管理员自己改过的标题原样保留，不会被覆盖回去。
+            let renamed = 0;
+            for (const issue of issues) {
+              if (!isSubmission(issue)) continue;
+              if (cleanTitle(issue.title)) continue;      // 标题已经有内容，尊重它
+
+              const real = parseBodyTitle(issue.body) || '未填写标题（请点开补充）';
+              const newTitle = '[投稿] ' + real;
+              await github.rest.issues.update({
+                owner: OWNER,
+                repo: REPO,
+                issue_number: issue.number,
+                title: newTitle,
+              });
+              issue.title = newTitle;                     // 后面生成 data.json 时直接用
+              renamed += 1;
+              console.log(`#${issue.number} 标题已补齐 ->「${newTitle}」`);
+            }
+
+            // ---- 3. 把「已通过」的投稿写成 data.json ----
             const CATEGORY_MAP = { '人设': 'persona', '插件': 'plugin', '技能': 'skill' };
 
-            const data = issues.map((issue) => {
+            const approved = issues.filter((i) => hasLabel(i, '已通过'));
+
+            const data = approved.map((issue) => {
               const body = issue.body || '';
 
-              // ---- 解析标题 ----
-              // 注意：投稿表单里的「标题」输入框，GitHub 会把它放进 Issue 正文，
-              // 正文里显示成 "### 标题" 这一段；Issue 自己那个大标题只是模板预设的
-              // "[投稿] "。所以优先读正文里的标题，读不到再退回读大标题。
-              let title = '';
-              const titleMatch = body.match(/###\s*标题\s*\n+((?!#)[^\n]+)/);
-              if (titleMatch) title = titleMatch[1].trim();
-              if (!title) title = (issue.title || '').replace(/^\s*\[投稿\]\s*/i, '').trim();
+              // 标题：优先大标题 —— 上面那步会把空标题补成正文里的「标题」，
+              // 所以正常情况下两者一致；要是管理员在列表里直接改过名，网站就跟着大标题走。
+              let title = cleanTitle(issue.title);
+              if (!title) title = parseBodyTitle(body);
               if (!title) title = '(无标题)';
 
-              // ---- 解析分区（表单 dropdown）----
+              // 分区（表单 dropdown）
               let categoryRaw = '';
               const catMatch = body.match(/###\s*选择分区\s*\n+((?!#)[^\n]+)/);
               if (catMatch) categoryRaw = catMatch[1].trim();
@@ -77,7 +124,7 @@ jobs:
               }
               const category = CATEGORY_MAP[categoryRaw] || 'persona';
 
-              // ---- 解析正文（表单 textarea：介绍 + 链接）----
+              // 正文（表单 textarea：介绍 + 链接）
               let content = '';
               const contentMatch = body.match(/###\s*文字介绍及下载链接\s*\n+([\s\S]*?)(?:\n###|\s*$)/);
               if (contentMatch) content = contentMatch[1].trim();
@@ -97,7 +144,11 @@ jobs:
               };
             });
 
+            // 新的排前面
+            data.sort((a, b) => b.id - a.id);
+
             fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
+            console.log(`已通过投稿 ${data.length} 条，补齐标题 ${renamed} 条`);
 
       - name: Commit and Push
         run: |
