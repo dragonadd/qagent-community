@@ -27,7 +27,7 @@
     "id": 29,
     "title": "泌乳系统插件-v1.2.0-测试版",
     "category": "plugin",
-    "content": "后续上传，稍等",
+    "content": "- `lastSuckAt` / `sessionSuckedMl` / `sessionStartAt`：记录\"这一场吸掉了多少、从多满到多空\"，距上次吸超过 2 小时自动算新一场\n- 注入新增一行：`这一场已经被吸掉 82ml（容量的 55%），从满到现在的 69；最近一次被吸在 4 分钟前`",
     "link": "",
     "created_at": "2026-10-25"
   },
