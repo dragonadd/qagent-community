@@ -1,13 +1,5 @@
 [
   {
-    "id": 40,
-    "title": "基于QQ Agent，另起炉灶",
-    "category": "skill",
-    "content": "天下文章一大抄\n\n抄袭该项目的现有成果，开发新的app，摆脱QQ对话窗口的依赖，允许用户在新的聊天窗口与智能体对话。\n可复制运用该项目的现有生态，技能、插件、人设。",
-    "link": "",
-    "created_at": "2026-10-27"
-  },
-  {
     "id": 39,
     "title": "白骨观",
     "category": "persona",
