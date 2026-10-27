@@ -261,10 +261,10 @@ function renderGrid() {
       card.appendChild(desc);
     }
 
-    // 投稿里的链接本来就在正文里，不再单独列一行，避免重复
+    
     el.grid.appendChild(card);
 
-    // 正文真的被折叠了，才放「展开全文」（要进了 DOM 才量得出高度）
+    
     if (desc && desc.scrollHeight > desc.clientHeight + 2) {
       const more = document.createElement('button');
       more.type = 'button';
@@ -336,7 +336,7 @@ function goSubmit(cat) {
 
 /* ---------- 页脚 issue 链接 ---------- */
 (function () {
-  if (GITHUB_USER.includes('YOUR')) return;   // 没改配置就提示去改
+  if (GITHUB_USER.includes('YOUR')) return;   
   el.issue.href = `https://github.com/${GITHUB_USER}/${REPO_NAME}/issues/new?title=反馈`;
 })();
 
