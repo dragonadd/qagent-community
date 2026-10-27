@@ -99,7 +99,7 @@
     "id": 23,
     "title": "各社区触发机器人指令",
     "category": "persona",
-    "content": "#napcat\n#sl\nstatus\n#帮助\n/help",
+    "content": "#napcat\n#sl\nstatus\n#帮助\n/help\nAstrBot v4.29.1(WebUI: v4.29.1)\n/name - Set display name for current UMO\n/new - Create a new conversation.\n/provider - View or switch LLM Provider\n/reset - Clear the context of the current conversation.\n/sid - Get session ID and other related information\n/stats - Show token usage statistics for the current conversation\n/stop - Stop agent execution",
     "link": "",
     "created_at": "2026-10-24"
   },
