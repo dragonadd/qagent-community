@@ -1,5 +1,13 @@
 [
   {
+    "id": 43,
+    "title": "表情包生成器插件-meme-洛版可用",
+    "category": "plugin",
+    "content": "开发使用时间 10.25\n现洛版可用，官版0.4不可用\n后续不知道\n\n插件基础来源: [meme ](https://github.com/MemeCrafters/meme-generator-rs)\n\n插件包见Release",
+    "link": "https://github.com/MemeCrafters/meme-generator-rs",
+    "created_at": "2026-10-28"
+  },
+  {
     "id": 42,
     "title": "你的下一条鱼，何必在QQ",
     "category": "skill",
