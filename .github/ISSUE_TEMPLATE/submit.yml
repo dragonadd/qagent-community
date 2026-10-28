@@ -31,9 +31,10 @@ body:
     id: content
     attributes:
       label: "文字介绍及下载链接"
-      description: "描述它有什么用、怎么用，末尾附上 http/https 下载或查看链接（可选）"
+      description: "描述它有什么用、怎么用。支持简单排版：**加粗**、`代码`、[文字](链接)，也可以直接贴网址"
       placeholder: |
         介绍一下这个脑洞……
-        示例：https://example.com/xxx.zip
+        示例：[下载地址](https://example.com/xxx.zip)
+        也可以直接贴：https://example.com/xxx.zip
     validations:
       required: true
