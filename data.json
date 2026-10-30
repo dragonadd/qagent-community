@@ -3,7 +3,7 @@
     "id": 45,
     "title": "官网市场技能、插件全量备份 · 2026-10-30",
     "category": "skill",
-    "content": "# QQ Agent 官方市场全量备份 · 索引\n\n- 来源：https://www.kondius.cn/api/community（技能列表 + 插件列表 + 逐包下载）\n- 抓取时间：2026-10-29T18:00:24.332Z → 2026-10-29T18:01:45.809Z（UTC）\n- 市场当前在架：技能 585 个、插件 827 个，共 1412 个\n- 成功备份：1363 个安装包，合计 82.2 MB\n- 未能下载：49 个（均为市场里 status=pending「审核中」的条目，服务器返回 403 社区管理密钥错误，不是公开可下载状态）\n\n见Release",
+    "content": "# QQ Agent 官方市场全量备份 · 索引\n\n- 来源：https://www.kondius.cn/api/community（技能列表 + 插件列表 + 逐包下载）\n- 抓取时间：2026-10-29T18:00:24.332Z → 2026-10-29T18:01:45.809Z（UTC）\n- 市场当前在架：技能 585 个、插件 827 个，共 1412 个\n- 成功备份：1363 个安装包，合计 82.2 MB\n- 未能下载：49 个（均为市场里 status=pending「审核中」的条目，服务器返回 403 社区管理密钥错误，不是公开可下载状态）\n\n见Release: -market-backup.zip",
     "link": "https://www.kondius.cn/api/community（技能列表",
     "created_at": "2026-10-30"
   },
